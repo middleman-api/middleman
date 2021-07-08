@@ -2,17 +2,22 @@ from typing import Optional
 import json
 from fastapi import Depends
 from passlib.hash import bcrypt
-
+from fastapi import FastAPI, Request, Response, Depends, HTTPException, responses, status, WebSocket, WebSocketDisconnect
 from ...auth import get_current_user
 from ...sites.models import ApiHit, Site
 from ...user_accounts.models import User
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException, status
 from ..schemas.schema import User_Pydantic, UserIn_Pydantic, SiteIn
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.responses import HTMLResponse
+from ...auth import authenticate_user, JWT_SECRET
+import jwt
+
 
 router = APIRouter(
     prefix="/dashboard",
     tags=["dashboard"],
-    dependencies=[Depends(get_current_user)],
+    # dependencies=[Depends(get_current_user)],
 )
 
 @router.get('/users/sites/{site_id}/')
@@ -68,3 +73,104 @@ async def create_site(site: SiteIn, user: User_Pydantic = Depends(get_current_us
     site = Site(url=site.url, owner_id=user.id)
     await site.save()
     return site.id
+
+
+@router.post('/token')
+async def generate_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = await authenticate_user(form_data.username, form_data.password)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail='Invalid username or password'
+        )
+
+    user_obj = await User_Pydantic.from_tortoise_orm(user)
+
+    token = jwt.encode(user_obj.dict(), JWT_SECRET)
+
+    return {'access_token' : token, 'token_type' : 'bearer'}
+
+
+html = """
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chat</title>
+    </head>
+    <body>
+        <h1>WebSocket Chat</h1>
+        <h2>Your ID: <span id="ws-id"></span></h2>
+        <form action="" onsubmit="sendMessage(event)">
+            <input type="text" id="messageText" autocomplete="off"/>
+            <button>Send</button>
+        </form>
+        <ul id='messages'>
+        </ul>
+        <script>
+            var client_id = 1
+            document.querySelector("#ws-id").textContent = client_id;
+            var ws = new WebSocket(`ws://localhost:8000/ws/${client_id}`);
+            ws.onmessage = function(event) {
+                var messages = document.getElementById('messages')
+                var message = document.createElement('li')
+                var content = document.createTextNode(event.data)
+                message.appendChild(content)
+                messages.appendChild(message)
+            };
+            function sendMessage(event) {
+                var input = document.getElementById("messageText")
+                ws.send(input.value)
+                input.value = ''
+                event.preventDefault()
+            }
+        </script>
+    </body>
+</html>
+"""
+
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections  = {}
+
+    async def connect(self, websocket: WebSocket, client_id: int):
+        await websocket.accept()
+        if not self.active_connections.get(client_id, []):
+            self.active_connections[client_id] = [websocket]
+        else:
+            print(self.active_connections)
+            self.active_connections[client_id].append(websocket)
+        print(self.active_connections)
+    
+    def disconnect(self, websocket: WebSocket, client_id: int):
+        print(self.active_connections)
+        self.active_connections.get(client_id, []).remove(websocket)
+
+    async def send_events(self, message: str, client_id: int):
+        print(self.active_connections)
+        print(self.active_connections.get(client_id, []))
+        for socket in self.active_connections.get(client_id, []):
+            await socket.send_text(message)
+
+
+manager = ConnectionManager()
+
+
+@router.get("/page")
+async def get():
+    return HTMLResponse(html)
+
+
+@router.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: int):
+    print(client_id)
+    await manager.connect(websocket, client_id)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # await manager.send_personal_message(f"You wrote: {data}", websocket)
+            # await manager.broadcast(f"Client #{client_id} says: {data}")
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, client_id)
+        # await manager.broadcast(f"Client #{client_id} left the chat")

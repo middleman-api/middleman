@@ -1,10 +1,10 @@
 from .user_accounts.models import User
 from fastapi import FastAPI, Request, Response, Depends, HTTPException, responses, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm, base
-
+import jwt
 JWT_SECRET = 'myjwtsecret'
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='token')
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/dashboard/token')
 
 
 async def authenticate_user(username: str, password: str):
