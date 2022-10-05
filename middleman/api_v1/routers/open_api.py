@@ -15,6 +15,7 @@ from ...sites.models import ApiHit, Site
 from .internal import manager
 router = APIRouter()
 
+
 @router.get("{rest_of_path:path}")
 @router.post("{rest_of_path:path}")
 async def root(request: Request, rest_of_path: str):
@@ -22,17 +23,18 @@ async def root(request: Request, rest_of_path: str):
     user_id = site.owner_id
     body = await request.body()
     headers = dict(request.headers)
+    print(headers)
     request_data = {}
     request_data['headers'] = headers
     request_data['request_body'] = body.decode('utf-8')
-    await manager.send_events(json.dumps(request_data), user_id)
+    await manager.send_events(json.dumps(request_data), site.pk)
     api_hit = ApiHit(
         site=site,
         method=request.method,
-        request_data=json.dumps(request_data)
+        request_data=json.dumps(request_data),
+        request_headers=headers
     )
     base_url = site.url
-    print(base_url + rest_of_path)
     await api_hit.save()
     headers['host'] = "entri.app"
     request_params = {
@@ -47,14 +49,26 @@ async def root(request: Request, rest_of_path: str):
         **request_params
     )
     raw_content = response.raw.read()
-    text_data = gzip.decompress(raw_content)
     response_headers = dict(response.headers)
+    if response_headers.get('Content-Encoding', '') == 'gzip':
+        text_data = gzip.decompress(raw_content).decode('utf-8')
+    else:
+        text_data = raw_content
+
     response_data = {}
     response_data['headers'] = response_headers
-    response_data['request_body'] = text_data.decode('utf-8')
-    response_data = json.dumps(response_data)
+    print(response_headers)
+    try:
+        response_data['request_body'] = json.loads(text_data)
+    except Exception:
+        response_data['request_body'] = text_data
+    # response_data = json.dumps(response_data)
+
+    await manager.send_events(text_data, site.pk)
     api_hit.response_data = response_data
+    api_hit.response_headers = response_headers
     await api_hit.save()
+    print('--------------------------------------------')
     return Response(
             raw_content,
             headers=response.headers,

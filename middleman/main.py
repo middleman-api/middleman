@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from typing import Dict, Optional, List
 from fastapi import FastAPI, Request, Response, Depends, HTTPException, responses, status, WebSocket, WebSocketDisconnect
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm, base
@@ -40,7 +42,7 @@ TORTOISE_ORM = {
 }
 
 register_tortoise(
-    app, 
+    app,
     config=TORTOISE_ORM,
     generate_schemas=True,
     add_exception_handlers=True
