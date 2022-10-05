@@ -62,7 +62,6 @@ async def root(request: Request, rest_of_path: str):
         response_data['request_body'] = json.loads(text_data)
     except Exception:
         response_data['request_body'] = text_data
-    # response_data = json.dumps(response_data)
 
     await manager.send_events(text_data, site.pk)
     api_hit.response_data = response_data
@@ -74,82 +73,3 @@ async def root(request: Request, rest_of_path: str):
             headers=response.headers,
             status_code=response.status_code
         )
-
-
-# html = """
-# <!DOCTYPE html>
-# <html>
-#     <head>
-#         <title>Chat</title>
-#     </head>
-#     <body>
-#         <h1>WebSocket Chat</h1>
-#         <h2>Your ID: <span id="ws-id"></span></h2>
-#         <form action="" onsubmit="sendMessage(event)">
-#             <input type="text" id="messageText" autocomplete="off"/>
-#             <button>Send</button>
-#         </form>
-#         <ul id='messages'>
-#         </ul>
-#         <script>
-#             var client_id = 1
-#             document.querySelector("#ws-id").textContent = client_id;
-#             var ws = new WebSocket(`ws://localhost:8000/ws/${client_id}`);
-#             ws.onmessage = function(event) {
-#                 var messages = document.getElementById('messages')
-#                 var message = document.createElement('li')
-#                 var content = document.createTextNode(event.data)
-#                 message.appendChild(content)
-#                 messages.appendChild(message)
-#             };
-#             function sendMessage(event) {
-#                 var input = document.getElementById("messageText")
-#                 ws.send(input.value)
-#                 input.value = ''
-#                 event.preventDefault()
-#             }
-#         </script>
-#     </body>
-# </html>
-# """
-
-
-# class ConnectionManager:
-#     def __init__(self):
-#         self.active_connections  = {}
-
-#     async def connect(self, websocket: WebSocket, client_id: int):
-#         await websocket.accept()
-#         if not self.active_connections.get(client_id, []):
-#             self.active_connections[client_id] = [websocket]
-#         else:
-#             self.active_connections[client_id].append(websocket)
-    
-#     def disconnect(self, websocket: WebSocket, client_id: int):
-#         self.active_connections.get(client_id, []).remove(websocket)
-
-#     async def send_events(self, message: str, client_id: int):
-#         for sockets in self.active_connections.get(client_id, []):
-#             for socket in sockets:
-#                 await socket.send_text(message)
-
-
-# manager = ConnectionManager()
-
-
-# @router.get("/dashboard/page")
-# async def get():
-#     return HTMLResponse(html)
-
-
-# @router.websocket("/ws/{client_id}")
-# async def websocket_endpoint(websocket: WebSocket, client_id: int):
-#     await manager.connect(websocket, client_id)
-#     try:
-#         while True:
-#             data = await websocket.receive_text()
-#             await manager.send_personal_message(f"You wrote: {data}", websocket)
-#             await manager.broadcast(f"Client #{client_id} says: {data}")
-#     except WebSocketDisconnect:
-#         manager.disconnect(websocket)
-#         await manager.broadcast(f"Client #{client_id} left the chat")
