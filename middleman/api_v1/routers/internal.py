@@ -2,7 +2,17 @@ from typing import Optional
 import json
 from fastapi import Depends
 from passlib.hash import bcrypt
-from fastapi import FastAPI, Request, Response, Depends, HTTPException, responses, status, WebSocket, WebSocketDisconnect
+from fastapi import (
+    FastAPI,
+    Request,
+    Response,
+    Depends,
+    HTTPException,
+    responses,
+    status,
+    WebSocket,
+    WebSocketDisconnect
+)
 from ...auth import get_current_user
 from ...sites.models import ApiHit, Site
 from ...user_accounts.models import User
