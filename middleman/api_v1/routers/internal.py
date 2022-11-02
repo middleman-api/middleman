@@ -37,12 +37,12 @@ async def get_api_hits(
         user: User_Pydantic=Depends(get_current_user)):
     api_hits = await ApiHit.filter(site_id=site_id)
     api_hits_data_list = []
-    for api_hit in api_hits:
+    for api_hit in api_hits[0:5]:
         request_data = api_hit.request_data
         response_data = api_hit.response_data
-        request_data = json.loads(request_data)
-        if response_data:
-            response_data = json.loads(response_data)
+        # request_data = json.loads(request_data)
+        # if response_data:
+        #     response_data = json.loads(response_data)
         api_hits_data_list.append(
             {
                 'request': request_data,
@@ -52,7 +52,7 @@ async def get_api_hits(
     return api_hits_data_list
 
 
-@router.get('/users/sites/')
+@router.get('/user/sites/')
 async def get_sites(user: User_Pydantic = Depends(get_current_user)):
     sites = await Site.filter(owner_id=user.id)
     sites_list = []
@@ -65,7 +65,7 @@ async def get_sites(user: User_Pydantic = Depends(get_current_user)):
     return sites_list
 
 
-@router.post('/users/sites/{site_id}/')
+@router.post('/user/sites/{site_id}/')
 async def edit_site(site_id: int, site_data: Optional[SiteIn] = None, user: User_Pydantic = Depends(get_current_user)):
     if site_data:
         site = await Site.get(id=site_id)
@@ -81,14 +81,14 @@ async def create_user(user: UserIn_Pydantic):
     return await User_Pydantic.from_tortoise_orm(user_obj)
 
 
-@router.get('/users/me', response_model=User_Pydantic)
+@router.get('/user/me', response_model=User_Pydantic)
 async def get_user(user: User_Pydantic = Depends(get_current_user)):
     return user
 
 
-@router.put('/users/site/create')
+@router.put('/user/sites')
 async def create_site(site: SiteIn, user: User_Pydantic = Depends(get_current_user)):
-    site = Site(url=site.url, owner_id=user.id)
+    site = Site(url=site.url, owner_id=user.id, name=site.name, incoming_url=site.incoming_url)
     await site.save()
     return site.id
 

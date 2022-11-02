@@ -19,7 +19,8 @@ router = APIRouter()
 @router.get("{rest_of_path:path}")
 @router.post("{rest_of_path:path}")
 async def root(request: Request, rest_of_path: str):
-    site = await Site.get(id=1)
+    client_host = request.client.host
+    site = await Site.get(incoming_url=client_host)
     user_id = site.owner_id
     body = await request.body()
     headers = dict(request.headers)

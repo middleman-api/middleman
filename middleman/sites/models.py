@@ -6,6 +6,7 @@ from ..utilities.models import TimestampedModel
 class Site(TimestampedModel):
     id = fields.IntField(pk=True)
     url = fields.CharField(253)
+    incoming_url = fields.CharField(253)
     owner = fields.ForeignKeyField('models.User', related_name='sites')
 
     def get_base_url(self):
