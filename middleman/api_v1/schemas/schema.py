@@ -12,3 +12,5 @@ class SiteEditResponse(BaseModel):
 
 class SiteIn(BaseModel):
     url: str
+    name: str
+    incoming_url: str

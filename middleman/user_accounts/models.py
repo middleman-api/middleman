@@ -1,8 +1,8 @@
 from passlib.hash import bcrypt
-from tortoise import fields 
-from tortoise.models import Model
+from tortoise import fields
 
 from ..utilities.models import TimestampedModel
+
 
 class User(TimestampedModel):
     id = fields.IntField(pk=True)
@@ -14,6 +14,6 @@ class User(TimestampedModel):
 
     def verify_password(self, password):
         return bcrypt.verify(password, self.password_hash)
-    
+
     class PydanticMeta:
         exclude = ("created_at", "updated_at")
