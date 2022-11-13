@@ -1,7 +1,7 @@
 from passlib.hash import bcrypt
 from tortoise import fields
 
-from ..utilities.models import TimestampedModel
+from middleman.utilities.models import TimestampedModel
 
 
 class User(TimestampedModel):
